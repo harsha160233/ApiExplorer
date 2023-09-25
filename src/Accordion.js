@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import axios from "axios";
 import { Link } from "react-router-dom";
@@ -11,11 +11,13 @@ const Button = styled.button`
   padding: 0.2em 1em;
   background-color: transparent;
 `;
+
 const Img = styled.img`
   height: 25px;
   width: 25px;
   padding-right: 10px;
 `;
+
 const Para = styled.p`
   color: white;
   text-align: center;
@@ -24,45 +26,63 @@ const Para = styled.p`
 function Accordion({ items }) {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [infoData, setInfoData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleClick = (index) => {
-    setActiveIndex(index === activeIndex ? -1 : index);
+  useEffect(() => {
+    const fetchData = async (index) => {
+      setLoading(true);
+      setError(null);
 
-    const params = items.data[index];
-    const apiUrl = `https://api.apis.guru/v2/${params}.json`;
+      try {
+        const params = items?.data[index];
+        if (params) {
+          const apiUrl = `https://api.apis.guru/v2/${params}.json`;
+          const response = await axios.get(apiUrl);
+          const data = response.data;
 
-    axios
-      .get(apiUrl)
-      .then((response) => {
-        const data = response.data;
+          for (const key in data.apis) {
+            if (data.apis.hasOwnProperty(key)) {
+              const api = data.apis[key];
+              const info = api.info;
+              info.swaggerUrl = api.swaggerUrl;
 
-        for (const key in data.apis) {
-          if (data.apis.hasOwnProperty(key)) {
-            const api = data.apis[key];
-            const swaggerUrl = api.swaggerUrl;
-            console.log(swaggerUrl,"swaggerUrl on accordian");
-            const info = api.info;
-            console.log(info,"info");
-            info.swaggerUrl = swaggerUrl;
-            console.log(info,"info");
-            if (info) {
-              setInfoData(info);
-            } else {
-              console.log("Info data is missing in the API response.");
+              if (info) {
+                setInfoData(info);
+              } else {
+                console.log("Info data is missing in the API response.");
+              }
             }
           }
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Error fetching data:", error);
-      });
+        setError(
+          error.message || "An error occurred while fetching data."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (activeIndex !== -1) {
+      fetchData(activeIndex);
+    }
+  }, [activeIndex, items]);
+
+  const handleClick = (index) => {
+    setActiveIndex(index === activeIndex ? -1 : index);
   };
 
   return (
     <div>
       <Para>Select Provider</Para>
       <div>
-        {items.data && items.data.length > 0 ? (
+        {loading ? (
+          <p>Loading...</p>
+        ) : error ? (
+          <p>Error: {error}</p>
+        ) : items.data && items.data.length > 0 ? (
           items.data.map((item, index) => (
             <div
               key={index}
@@ -87,7 +107,9 @@ function Accordion({ items }) {
                     <Link
                       to={{
                         pathname: `/apilist/${item}`,
-                        search: `?infoData=${JSON.stringify(infoData)}`,
+                        search: `?infoData=${encodeURIComponent(
+                          JSON.stringify(infoData)
+                        )}`, // Serialize infoData to query string
                       }}
                     >
                       {infoData && (
