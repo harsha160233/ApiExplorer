@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
+
 import styled from "styled-components";
-import axios from "axios"; 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 const Container = styled.div`
   padding-left: 5%;
@@ -49,76 +48,41 @@ const BtnContainer = styled.div`
 `;
 
 const ApiDetail = () => {
-  const [apiData, setApiData] = useState(null);
+  const { apiId } = useParams();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const infoDataString = queryParams.get("infoData");
+  const apiData = infoDataString ? JSON.parse(infoDataString) : null;
+  console.log(apiData);
   const navigate = useNavigate();
 
   const onOpenAPiExplorer = () => {
     navigate("/");
   };
 
-  useEffect(() => {
-    const currentURL = window.location.href;
-    const urlParts = currentURL.split("/");
-    const domain = urlParts[urlParts.length - 1];
-    const apiUrl = `https://api.apis.guru/v2/${domain}.json`;
-
-    // Replace Fetch with Axios GET request
-    axios
-      .get(apiUrl)
-      .then((response) => {
-        const data = response.data;
-        const infoData = [];
-
-        for (const key in data.apis) {
-          if (data.apis.hasOwnProperty(key)) {
-            const api = data.apis[key];
-            const swaggerUrl = api.swaggerUrl;
-            const info = api.info;
-            if (info) {
-              infoData.push({
-                title: info.title,
-                description: info.description,
-                version: info.version,
-                logo: info["x-logo"] && info["x-logo"].url,
-                contact: info.contact,
-                swaggerUrl: swaggerUrl,
-              });
-            } else {
-              console.log("Info data is missing in the API response.");
-            }
-          }
-        }
-
-        setApiData(infoData);
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-      });
-  }, []);
-
   return (
     <Container>
       {apiData ? (
-        apiData.map((info, index) => (
-          <div key={index} className="textwhite">
-            <Inlines>
-              {info.logo && <Img src={info.logo} alt="logo" className="logo" />}
-              <p>API Name: {info.title}</p>
-            </Inlines>
-            <Para>Description:</Para>
-            {info.description}
-            <Para>Swagger:</Para>
-            {info.swaggerUrl}
-            {info.contact && (
-              <div>
-                <Para>Contact:</Para>
-                {info.contact.email && <p>Email: {info.contact.email}</p>}
-                {info.contact.name && <p>Name: {info.contact.name}</p>}
-                {info.contact.url && <p>Url: {info.contact.url}</p>}
-              </div>
+        <div className="textwhite">
+          <Inlines>
+            {apiData["x-logo"].url && (
+              <Img src={apiData["x-logo"].url} alt="logo" className="logo" />
             )}
-          </div>
-        ))
+            <p>API Name: {apiData.title}</p>
+          </Inlines>
+          <Para>Description:</Para>
+          {apiData.description}
+          <Para>Swagger:</Para>
+          {apiData.swaggerUrl}
+          {apiData.contact && (
+            <div>
+              <Para>Contact:</Para>
+              {apiData.contact.email && <p>Email: {apiData.contact.email}</p>}
+              {apiData.contact.name && <p>Name: {apiData.contact.name}</p>}
+              {apiData.contact.url && <p>Url: {apiData.contact.url}</p>}
+            </div>
+          )}
+        </div>
       ) : (
         <p>Loading...</p>
       )}

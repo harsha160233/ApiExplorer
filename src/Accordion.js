@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import axios from "axios";
 import { Link } from "react-router-dom";
+
 const Button = styled.button`
   color: white;
   font-size: 0.9em;
@@ -19,6 +20,7 @@ const Para = styled.p`
   color: white;
   text-align: center;
 `;
+
 function Accordion({ items }) {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [infoData, setInfoData] = useState(null);
@@ -37,8 +39,12 @@ function Accordion({ items }) {
         for (const key in data.apis) {
           if (data.apis.hasOwnProperty(key)) {
             const api = data.apis[key];
-
+            const swaggerUrl = api.swaggerUrl;
+            console.log(swaggerUrl,"swaggerUrl on accordian");
             const info = api.info;
+            console.log(info,"info");
+            info.swaggerUrl = swaggerUrl;
+            console.log(info,"info");
             if (info) {
               setInfoData(info);
             } else {
@@ -78,7 +84,12 @@ function Accordion({ items }) {
 
                 {index === activeIndex && (
                   <div>
-                    <Link to={`/apidetail/${item}`}>
+                    <Link
+                      to={{
+                        pathname: `/apilist/${item}`,
+                        search: `?infoData=${JSON.stringify(infoData)}`,
+                      }}
+                    >
                       {infoData && (
                         <Img src={infoData["x-logo"].url} alt="logo" />
                       )}
